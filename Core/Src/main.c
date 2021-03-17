@@ -47,6 +47,12 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 uint32_t ADCData[4]={0};
+uint8_t Mode =0;
+uint32_t TimeDelay=0;
+uint32_t TimeStamp =0;
+uint32_t TimeStampOut =0;
+uint32_t count =0;
+int k=0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -101,11 +107,31 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+	  if(Mode ==1 &&k==0){
+		  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+		  TimeDelay = 1000 +((22695477* ADCData[0]) +ADCData[1])% 10000;
+		  TimeStamp = HAL_GetTick();
+		  while(TimeDelay >= (HAL_GetTick()-TimeStamp)){
+			  if ((Mode ==0) && (HAL_GPIO_ReadPin(LD2_GPIO_Port,LD2_Pin) == GPIO_PIN_RESET)){
+				  count=999999999 ;
+		  	  }
+		  }
+		  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+		  k=1;
+	  }
+
+	  if(Mode ==0 && k==1){
+		  TimeStampOut =HAL_GetTick();
+		  count = TimeStampOut - (TimeDelay + TimeStamp);
+		  k=0;
+	  }
   }
   /* USER CODE END 3 */
 }
@@ -193,7 +219,7 @@ static void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_0;
   sConfig.Rank = 1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  sConfig.SamplingTime = ADC_SAMPLETIME_56CYCLES;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -297,7 +323,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
@@ -317,7 +343,12 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	if(GPIO_Pin == GPIO_PIN_13){
-		HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+		if(Mode ==0){
+			Mode =1;
+		}
+		else{
+			Mode =0;
+		}
 	}
 }
 /* USER CODE END 4 */
